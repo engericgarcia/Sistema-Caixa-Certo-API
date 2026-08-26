@@ -1,0 +1,27 @@
+{
+  "name": "caixa-certo-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API REST do Caixa Certo — contas a pagar, contas a receber, fluxo de caixa e relatórios.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "seed": "node src/db/seed.js",
+    "reset": "node src/db/seed.js --reset"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.24.1"
+  }
+}

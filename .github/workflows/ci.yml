@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Smoke test da API
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Preparar variáveis de ambiente
+        run: cp .env.example .env
+
+      - name: Popular o banco de demonstração
+        run: npm run seed
+
+      - name: Subir a API e exercitar as rotas
+        run: |
+          npm start &
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:4000/api/health > /dev/null && break
+            sleep 1
+          done
+
+          echo "→ health"
+          curl -sf http://localhost:4000/api/health || exit 1
+
+          echo "→ login"
+          TOKEN=$(curl -sf -X POST http://localhost:4000/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"demo@caixacerto.app","password":"demo1234"}' \
+            | node -pe "JSON.parse(require('fs').readFileSync(0)).token")
+          test -n "$TOKEN" || { echo "login falhou"; exit 1; }
+
+          echo "→ dashboard"
+          curl -sf -H "Authorization: Bearer $TOKEN" \
+            http://localhost:4000/api/dashboard > /dev/null || exit 1
+
+          echo "→ rota protegida sem token deve responder 401"
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/api/transactions)
+          test "$CODE" = "401" || { echo "esperava 401, veio $CODE"; exit 1; }
+
+          echo "Tudo certo."
